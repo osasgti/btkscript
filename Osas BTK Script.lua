@@ -287,16 +287,17 @@ end
 local function updateBar()
     local dialog = [[
 add_label_with_icon|big|`@Osas `eBTK Proxy|left|11550|
-add_textbox|`bProxy Version `0: `2v1.0.0|
+add_textbox|`bProxy Version `0: `2v1.0.1|
 add_spacer|small|
-add_label_with_icon|small|`2v1.0.0|left|834|
+add_label_with_icon|small|`2v1.0.1|left|834|
 add_textbox|`2Update Logs `0=|
 add_smalltext|`b- `9ImGui Panel BTK|
 add_smalltext|`b- `9Simple Setup, Only Run Script|
 add_smalltext|`b- `9Supports `b/wd`9, `b/dd`9, `b/bd`9, `b/bdl `9for now|
 add_smalltext|`b- `9Added Logs Tab|
+add_smalltext|`b- `9Added Auto Deploy Shadow Farm|
 add_textbox|`4Bug Fixes `0=|
-add_smalltext|`b- `9None yet...|
+add_smalltext|`b- `9Fixed Black Gem Lock Drops & Auto Convert|
 add_spacer|small|
 add_button|menuu|`bCommand/Menu Bar||
 end_dialog|hsj|Close|
@@ -403,6 +404,16 @@ local function convertDLToBGL()
         SendPacket(2, "action|dialog_return\ndialog_name|telephone\nnum|53785|\nx|" .. PH.x .. "|\ny|" .. PH.y .. "|\nbuttonClicked|bglconvert")
         Sleep(1000)
         if inv(ID_DL) >= before then break end
+    end
+end
+
+local function convertBGLToBlack()
+    while not autoConvertPaused and inv(ID_BGL) >= 100 do
+        local beforeBGL = inv(ID_BGL)
+        local beforeBlack = inv(ID_BLACK)
+        SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bgl")
+        Sleep(1000)
+        if inv(ID_BGL) >= beforeBGL and inv(ID_BLACK) <= beforeBlack then break end
     end
 end
 
@@ -718,24 +729,38 @@ AddHook("onsendpacket", "manual_drop_and_pull", function(type, str)
     amount = tonumber(amount)
 
     if cmd == "bd" and amount and amount > 0 then
-        local haveBGL = inv(ID_BGL)
-        local haveBLACK = inv(ID_BLACK)
+        if currencyCommandRunning then return true end
+        currencyCommandRunning = true
+        autoConvertPaused = true
 
-        if haveBGL < amount then
-            if haveBLACK > 0 then
+        RunThread(function()
+            while inv(ID_BGL) < amount and inv(ID_BLACK) > 0 do
+                local beforeBGL = inv(ID_BGL)
+                local beforeBlack = inv(ID_BLACK)
                 SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bluegl")
-                ngomong("`9Converted `1Black Gem Lock `9to `e100 BGL.")
+                Sleep(1000)
+
+                if inv(ID_BGL) <= beforeBGL and inv(ID_BLACK) >= beforeBlack then
+                    break
+                end
+            end
+
+            if inv(ID_BGL) >= amount then
+                Sleep(500)
+                SendPacket(2, "action|dialog_return\ndialog_name|drop\nitem_drop|" .. ID_BGL .. "|\nitem_count|" .. amount)
+                Sleep(600)
+
+                local msg = "`0Dropped `2" .. amount .. " `eBlue Gem Lock"
+                ngomong(msg)
+                cLog(msg)
+                textoverlay(msg)
             else
                 ngomong("`4Not enough BGL or Black to convert.")
             end
-            return true
-        end
 
-        SendPacket(2, "action|dialog_return\ndialog_name|drop\nitem_drop|" .. ID_BGL .. "|\nitem_count|" .. amount)
-        local msg = "`0Dropped `2" .. amount .. " `eBlue Gem Lock"
-        ngomong(msg)
-        cLog(msg)
-        textoverlay(msg)
+            autoConvertPaused = false
+            currencyCommandRunning = false
+        end)
         return true
 
     elseif cmd == "wd" and amount and amount > 0 then
@@ -1130,6 +1155,10 @@ while true do
 
     if scriptEnabled and not autoConvertPaused and inv(ID_DL) >= 100 then
         convertDLToBGL()
+    end
+
+    if scriptEnabled and not autoConvertPaused and inv(ID_BGL) >= 100 then
+        convertBGLToBlack()
     end
 
     if scriptEnabled and dropWin then
