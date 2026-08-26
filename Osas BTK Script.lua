@@ -647,6 +647,22 @@ local function donationTileHasSpace(tile, amount)
     return stackCount <= MAX_DROPPED_STACKS
 end
 
+local function faceLeftAt(x, y)
+    pcall(function()
+        local player = GetLocal()
+        if player then player.isleft = true end
+    end)
+
+    SendPacketRaw(false, {
+        type = 0,
+        x = x * 32,
+        y = y * 32,
+        px = -1,
+        py = -1,
+        state = 48
+    })
+end
+
 local function donateHalfTax(tax)
     if not tax or tax <= 0 or not DonPos then return end
     local halfTax = tax / 2
@@ -658,20 +674,13 @@ local function donateHalfTax(tax)
     for _, tile in ipairs(DonPos) do
         if donationTileHasSpace(tile, halfTax) then
             FindPath(tile.x + 1, tile.y, 1000)
-            Sleep(500)
+            Sleep(900)
 
             local before = inventoryValueDL() + inv(ID_WL) / 100
-            SendPacketRaw(false, {
-                type = 0,
-                x = (tile.x + 1) * 32,
-                y = tile.y * 32,
-                px = -1,
-                py = -1,
-                state = 48
-            })
-            Sleep(300)
+            faceLeftAt(tile.x + 1, tile.y)
+            Sleep(700)
             dropTaxCurrency(halfTax)
-            Sleep(800)
+            Sleep(1200)
 
             local after = inventoryValueDL() + inv(ID_WL) / 100
             if after < before then break end
@@ -1123,11 +1132,7 @@ while true do
             ngomong(string.format("`9[DRAW] `0Kiri `0%d (gems) `0- `9%d (gems) `0Kanan `9[DRAW]", p1Gems, p2Gems))
             Sleep(500)
 
-            if takeChandeliers(6) and placeChandeliers() then
-                ngomong("`9Draw! Bets saved, game continued.")
-            else
-                textoverlay("`4Could not replace chandeliers after draw")
-            end
+            placeChandeliers()
 
             returnHostPosition()
             autoConvertPaused = false
