@@ -20,6 +20,15 @@ local roomCenters = {
     [6] = { x = 64, y = 23 }
 }
 
+local shadowFarmPositions = {
+    [1] = { x = 59, y = 33 },
+    [2] = { x = 59, y = 17 },
+    [3] = { x = 27, y = 29 },
+    [4] = { x = 73, y = 29 },
+    [5] = { x = 27, y = 23 },
+    [6] = { x = 73, y = 23 }
+}
+
 local currentRoom = nil
 local D1Pos, D2Pos, W1Pos, W2Pos, P1Pos, P2Pos, DonPos, R1Pos, R2Pos, PH = nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
 
@@ -320,6 +329,19 @@ local function returnHostPosition()
         py = -1,
         state = 48
     })
+end
+
+local function deployShadowFarm()
+    local position = shadowFarmPositions[currentRoom]
+    if not position then return false end
+
+    FindPath(position.x, position.y, 1000)
+    Sleep(700)
+    SendPacket(2, "action|dialog_return\ndialog_name|shadowfarm\nbuttonClicked|deploy")
+    Sleep(700)
+    returnHostPosition()
+    Sleep(500)
+    return true
 end
 
 local function place(x, y)
@@ -1077,6 +1099,7 @@ RunThread(function()
     if valid then
         scriptEnabled = true
         enableModFly()
+        deployShadowFarm()
         local info = GetLocal()
         if info then
             ngomong("`2Running `eOsas BTK Proxy")
