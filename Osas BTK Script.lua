@@ -21,7 +21,7 @@ local roomCenters = {
 }
 
 local shadowFarmPositions = {
-    [1] = { x = 59, y = 33 },
+    [1] = { x = 59, y = 32 },
     [2] = { x = 59, y = 17 },
     [3] = { x = 27, y = 29 },
     [4] = { x = 73, y = 29 },
