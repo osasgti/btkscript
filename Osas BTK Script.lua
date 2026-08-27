@@ -148,11 +148,6 @@ local currencyCommandRunning = false
 local autoConvertPaused = false
 local ignoreCollectedMessages = false
 
-local function enableModFly()
-    if type(ChangeValue) ~= "function" then return false end
-    return pcall(ChangeValue, "ModFly", true)
-end
-
 local function inventoryAmount(itemID)
     for _, item in pairs(GetInventory() or {}) do
         if item.id == itemID then return item.amount or 0 end
@@ -1152,7 +1147,7 @@ RunThread(function()
     local valid, reason = detectRoom()
     if valid then
         scriptEnabled = true
-        enableModFly()
+        ChangeValue("[C] Modfly", true)
         deployShadowFarm()
         local info = GetLocal()
         if info then
