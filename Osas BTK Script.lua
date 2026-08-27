@@ -287,9 +287,9 @@ end
 local function updateBar()
     local dialog = [[
 add_label_with_icon|big|`@Osas `eBTK Proxy|left|11550|
-add_textbox|`bProxy Version `0: `2v1.0.1|
+add_textbox|`bProxy Version `0: `2v1.0.2|
 add_spacer|small|
-add_label_with_icon|small|`2v1.0.1|left|834|
+add_label_with_icon|small|`2v1.0.2|left|834|
 add_textbox|`2Update Logs `0=|
 add_smalltext|`b- `9ImGui Panel BTK|
 add_smalltext|`b- `9Simple Setup, Only Run Script|
@@ -298,6 +298,7 @@ add_smalltext|`b- `9Added Logs Tab|
 add_smalltext|`b- `9Added Auto Deploy Shadow Farm|
 add_textbox|`4Bug Fixes `0=|
 add_smalltext|`b- `9Fixed Black Gem Lock Drops & Auto Convert|
+add_smalltext|`b- `9Take Bets More Accurate|
 add_spacer|small|
 add_button|menuu|`bCommand/Menu Bar||
 end_dialog|hsj|Close|
@@ -738,7 +739,7 @@ AddHook("onsendpacket", "manual_drop_and_pull", function(type, str)
                 local beforeBGL = inv(ID_BGL)
                 local beforeBlack = inv(ID_BLACK)
                 SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bluegl")
-                Sleep(1000)
+                Sleep(350)
 
                 if inv(ID_BGL) <= beforeBGL and inv(ID_BLACK) >= beforeBlack then
                     break
@@ -746,9 +747,9 @@ AddHook("onsendpacket", "manual_drop_and_pull", function(type, str)
             end
 
             if inv(ID_BGL) >= amount then
-                Sleep(500)
+                Sleep(100)
                 SendPacket(2, "action|dialog_return\ndialog_name|drop\nitem_drop|" .. ID_BGL .. "|\nitem_count|" .. amount)
-                Sleep(600)
+                Sleep(200)
 
                 local msg = "`0Dropped `2" .. amount .. " `eBlue Gem Lock"
                 ngomong(msg)
@@ -998,6 +999,10 @@ AddHook("ondraw", "btk_ui", function()
                             totalPrizeDL = 0
                             currentTaxDL = 0
                             textoverlay("`4Both players must drop a bet")
+                        elseif p1BetDL ~= p2BetDL then
+                            totalPrizeDL = 0
+                            currentTaxDL = 0
+                            ngomong("`4Bets must be equal: `0" .. formatSmartDL(p1BetDL) .. " `1vs `0" .. formatSmartDL(p2BetDL))
                         else
                             autoConvertPaused = true
                             if not takeChandeliers() then
@@ -1006,23 +1011,47 @@ AddHook("ondraw", "btk_ui", function()
                                 local expectedTotal = p1BetDL + p2BetDL
                                 local inventoryBefore = inventoryValueDL()
                                 ignoreCollectedMessages = true
-                                pickupAt(D1Pos)
-                                pickupAt(W1Pos)
-                                pickupAt(D2Pos)
-                                pickupAt(W2Pos)
 
-                                local collectedTotal = 0
-                                for _ = 1, 10 do
-                                    Sleep(300)
-                                    collectedTotal = inventoryValueDL() - inventoryBefore
-                                    if collectedTotal >= expectedTotal then break end
+                                local remainingBet = expectedTotal
+                                for _ = 1, 50 do
+                                    pickupAt(D1Pos)
+                                    pickupAt(W1Pos)
+                                    pickupAt(D2Pos)
+                                    pickupAt(W2Pos)
+                                    Sleep(250)
+
+                                    -- Compress collected currency immediately so a full
+                                    -- inventory can continue taking the remaining stacks.
+                                    while inv(ID_DL) >= 100 do
+                                        local beforeDL = inv(ID_DL)
+                                        SendPacket(2, "action|dialog_return\ndialog_name|telephone\nnum|53785|\nx|" .. PH.x .. "|\ny|" .. PH.y .. "|\nbuttonClicked|bglconvert")
+                                        Sleep(500)
+                                        if inv(ID_DL) >= beforeDL then break end
+                                    end
+
+                                    while inv(ID_BGL) >= 100 do
+                                        local beforeBGL = inv(ID_BGL)
+                                        local beforeBlack = inv(ID_BLACK)
+                                        SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bgl")
+                                        Sleep(500)
+                                        if inv(ID_BGL) >= beforeBGL and inv(ID_BLACK) <= beforeBlack then break end
+                                    end
+
+                                    remainingBet = parseCollectedBet(D1Pos)
+                                        + parseCollectedBet(W1Pos)
+                                        + parseCollectedBet(D2Pos)
+                                        + parseCollectedBet(W2Pos)
+                                    if remainingBet <= 0 then break end
                                 end
+
+                                Sleep(300)
+                                local collectedTotal = inventoryValueDL() - inventoryBefore
                                 ignoreCollectedMessages = false
 
-                                if collectedTotal ~= expectedTotal then
+                                if remainingBet > 0 or collectedTotal ~= expectedTotal then
                                     totalPrizeDL = 0
                                     currentTaxDL = 0
-                                    textoverlay("`4Bet pickup mismatch: expected " .. expectedTotal .. " DL, received " .. collectedTotal .. " DL")
+                                    textoverlay("`4Bet pickup incomplete: expected " .. expectedTotal .. " DL, received " .. collectedTotal .. " DL, remaining " .. remainingBet .. " DL")
                                 else
                                     local tax = math.ceil(expectedTotal * 0.05)
                                     currentTaxDL = tax
@@ -1197,34 +1226,61 @@ while true do
         Sleep(400)
 
         local blk = math.floor(totalPrizeDL / 10000)
-        if blk > 0 and inv(ID_BLACK) >= blk then
-            SendPacket(2, "action|dialog_return\ndialog_name|drop\nitem_drop|"..ID_BLACK.."|\nitem_count|"..blk)
-            totalPrizeDL = totalPrizeDL - blk * 10000
-            Sleep(600)
+        if blk > 0 then
+            while inv(ID_BLACK) < blk do
+                if inv(ID_BGL) < 100 and inv(ID_DL) >= 100 then
+                    local beforeDL = inv(ID_DL)
+                    SendPacket(2, "action|dialog_return\ndialog_name|telephone\nnum|53785|\nx|" .. PH.x .. "|\ny|" .. PH.y .. "|\nbuttonClicked|bglconvert")
+                    Sleep(600)
+                    if inv(ID_DL) >= beforeDL then break end
+                elseif inv(ID_BGL) >= 100 then
+                    local beforeBlack = inv(ID_BLACK)
+                    SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bgl")
+                    Sleep(600)
+                    if inv(ID_BLACK) <= beforeBlack then break end
+                else
+                    break
+                end
+            end
+
+            if inv(ID_BLACK) >= blk then
+                SendPacket(2, "action|dialog_return\ndialog_name|drop\nitem_drop|"..ID_BLACK.."|\nitem_count|"..blk)
+                totalPrizeDL = totalPrizeDL - blk * 10000
+                Sleep(400)
+            end
         end
 
         local bgl = math.floor(totalPrizeDL / 100)
         if bgl > 0 then
+            while inv(ID_BGL) < bgl and inv(ID_BLACK) > 0 do
+                local beforeBGL = inv(ID_BGL)
+                local beforeBlack = inv(ID_BLACK)
+                SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bluegl")
+                Sleep(600)
+                if inv(ID_BGL) <= beforeBGL and inv(ID_BLACK) >= beforeBlack then break end
+            end
+
             if inv(ID_BGL) >= bgl then
                 SendPacket(2, "action|dialog_return\ndialog_name|drop\nitem_drop|"..ID_BGL.."|\nitem_count|"..bgl)
                 totalPrizeDL = totalPrizeDL - bgl * 100
-                Sleep(600)
-            elseif inv(ID_BLACK) > 0 then
-                SendPacket(2, "action|dialog_return\ndialog_name|info_box\nbuttonClicked|make_bluegl")
-                Sleep(600)
+                Sleep(400)
             end
         end
 
         local dl = totalPrizeDL % 100
         if dl > 0 then
-            if inv(ID_DL) < dl and inv(ID_BGL) > 0 then
+            while inv(ID_DL) < dl and inv(ID_BGL) > 0 do
+                local beforeDL = inv(ID_DL)
+                local beforeBGL = inv(ID_BGL)
                 SendPacketRaw(false, {type = 10, value = ID_BGL})
                 Sleep(600)
+                if inv(ID_DL) <= beforeDL and inv(ID_BGL) >= beforeBGL then break end
             end
+
             if inv(ID_DL) >= dl then
                 SendPacket(2, "action|dialog_return\ndialog_name|drop\nitem_drop|"..ID_DL.."|\nitem_count|"..dl)
                 totalPrizeDL = totalPrizeDL - dl
-                Sleep(600)
+                Sleep(400)
             end
         end
 
