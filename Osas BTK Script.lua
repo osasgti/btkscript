@@ -282,9 +282,9 @@ end
 local function updateBar()
     local dialog = [[
 add_label_with_icon|big|`@Osas `eBTK Proxy|left|11550|
-add_textbox|`bProxy Version `0: `2v1.0.2|
+add_textbox|`bProxy Version `0: `2v1.0.3|
 add_spacer|small|
-add_label_with_icon|small|`2v1.0.2|left|834|
+add_label_with_icon|small|`2v1.0.3|left|834|
 add_textbox|`2Update Logs `0=|
 add_smalltext|`b- `9ImGui Panel BTK|
 add_smalltext|`b- `9Simple Setup, Only Run Script|
@@ -981,7 +981,9 @@ AddHook("ondraw", "btk_ui", function()
             if ImGui.Button("Take", ImVec2(100, 100)) and not takeRunning then
                 takeRunning = true
                 RunThread(function()
-                    if not currentRoom then
+                    if totalPrizeDL > 0 then
+                        ngomong("`4A bet is already saved. Press Drop to finish the game.")
+                    elseif not currentRoom then
                         textoverlay("`4Use Check Position first")
                     elseif currencyCommandRunning then
                         textoverlay("`4Wait for the currency command to finish")
