@@ -148,6 +148,17 @@ local currencyCommandRunning = false
 local autoConvertPaused = false
 local ignoreCollectedMessages = false
 
+local function resetBet()
+    p1BetDL, p2BetDL = 0, 0
+    p1Name, p2Name = "nil", "nil"
+    p1UserID, p2UserID = 0, 0
+    totalPrizeDL = 0
+    currentTaxDL = 0
+    winnerSide = nil
+    p1Gems, p2Gems = 0, 0
+    dropWin = false
+end
+
 local function inventoryAmount(itemID)
     for _, item in pairs(GetInventory() or {}) do
         if item.id == itemID then return item.amount or 0 end
@@ -282,15 +293,11 @@ end
 local function updateBar()
     local dialog = [[
 add_label_with_icon|big|`@Osas `eBTK Proxy|left|11550|
-add_textbox|`bProxy Version `0: `2v1.0.3|
+add_textbox|`bProxy Version `0: `2v1.0.4|
 add_spacer|small|
-add_label_with_icon|small|`2v1.0.3|left|834|
+add_label_with_icon|small|`2v1.0.4|left|834|
 add_textbox|`2Update Logs `0=|
-add_smalltext|`b- `9ImGui Panel BTK|
-add_smalltext|`b- `9Simple Setup, Only Run Script|
-add_smalltext|`b- `9Supports `b/wd`9, `b/dd`9, `b/bd`9, `b/bdl `9for now|
-add_smalltext|`b- `9Added Logs Tab|
-add_smalltext|`b- `9Added Auto Deploy Shadow Farm|
+add_smalltext|`b- `9Added Reset Bet|
 add_textbox|`4Bug Fixes `0=|
 add_smalltext|`b- `9Fixed Black Gem Lock Drops & Auto Convert|
 add_smalltext|`b- `9Take Bets More Accurate|
@@ -974,6 +981,15 @@ AddHook("ondraw", "btk_ui", function()
                         textoverlay("`2Returned to Room " .. currentRoom .. " center")
                     end
                 end)
+            end
+            ImGui.SameLine()
+            if ImGui.Button("Reset Bet", ImVec2(100, 75)) then
+                if takeRunning then
+                    textoverlay("`4Wait for Take to finish")
+                else
+                    resetBet()
+                    textoverlay("`2Bet reset")
+                end
             end
 
             ImGui.Spacing()
