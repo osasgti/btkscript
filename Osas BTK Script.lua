@@ -293,10 +293,11 @@ end
 local function updateBar()
     local dialog = [[
 add_label_with_icon|big|`@Osas `eBTK Proxy|left|11550|
-add_textbox|`bProxy Version `0: `2v1.0.4|
+add_textbox|`bProxy Version `0: `2v1.0.5|
 add_spacer|small|
-add_label_with_icon|small|`2v1.0.4|left|834|
+add_label_with_icon|small|`2v1.0.5|left|834|
 add_textbox|`2Update Logs `0=|
+add_smalltext|`b- `9Verified Half Tax Drop Before Returning Center|
 add_smalltext|`b- `9Added Reset Bet|
 add_textbox|`4Bug Fixes `0=|
 add_smalltext|`b- `9Fixed Black Gem Lock Drops & Auto Convert|
@@ -700,28 +701,76 @@ local function faceLeftAt(x, y)
 end
 
 local function donateHalfTax(tax)
-    if not tax or tax <= 0 or not DonPos then return end
+    if not tax or tax <= 0 then return true end
+    if not DonPos then return false end
+
     local halfTax = tax / 2
+    local remainingTax = halfTax
+    local epsilon = 0.009
 
     table.sort(DonPos, function(a, b)
         return a.x < b.x
     end)
 
     for _, tile in ipairs(DonPos) do
-        if donationTileHasSpace(tile, halfTax) then
+        if remainingTax <= epsilon then return true end
+
+        if donationTileHasSpace(tile, remainingTax) then
             FindPath(tile.x + 1, tile.y, 1000)
             Sleep(900)
 
-            local before = inventoryValueDL() + inv(ID_WL) / 100
-            faceLeftAt(tile.x + 1, tile.y)
-            Sleep(700)
-            dropTaxCurrency(halfTax)
-            Sleep(1200)
+            local player = GetLocal()
+            local playerX = player and player.pos
+                and math.floor(player.pos.x / 32) or -1
+            local playerY = player and player.pos
+                and math.floor(player.pos.y / 32) or -1
 
-            local after = inventoryValueDL() + inv(ID_WL) / 100
-            if after < before then break end
+            if playerX == tile.x + 1 and playerY == tile.y then
+                local before = inventoryValueDL() + inv(ID_WL) / 100
+                faceLeftAt(tile.x + 1, tile.y)
+                Sleep(700)
+                dropTaxCurrency(remainingTax)
+                Sleep(1200)
+
+                local after = inventoryValueDL() + inv(ID_WL) / 100
+                local dropped = math.max(0, before - after)
+                remainingTax = math.max(0, remainingTax - dropped)
+
+                if remainingTax <= epsilon then return true end
+            end
         end
     end
+
+    -- One extra pass handles delayed inventory updates or a tile that became
+    -- full during the first attempt. Only the still-missing amount is dropped.
+    for _, tile in ipairs(DonPos) do
+        if remainingTax <= epsilon then return true end
+
+        if donationTileHasSpace(tile, remainingTax) then
+            FindPath(tile.x + 1, tile.y, 1000)
+            Sleep(900)
+
+            local player = GetLocal()
+            local playerX = player and player.pos
+                and math.floor(player.pos.x / 32) or -1
+            local playerY = player and player.pos
+                and math.floor(player.pos.y / 32) or -1
+
+            if playerX == tile.x + 1 and playerY == tile.y then
+                local before = inventoryValueDL() + inv(ID_WL) / 100
+                faceLeftAt(tile.x + 1, tile.y)
+                Sleep(700)
+                dropTaxCurrency(remainingTax)
+                Sleep(1200)
+
+                local after = inventoryValueDL() + inv(ID_WL) / 100
+                local dropped = math.max(0, before - after)
+                remainingTax = math.max(0, remainingTax - dropped)
+            end
+        end
+    end
+
+    return remainingTax <= epsilon
 end
 
 AddHook("onsendpacket", "manual_drop_and_pull", function(type, str)
@@ -1297,11 +1346,15 @@ while true do
             end
         end
 
-        donateHalfTax(currentTaxDL)
-        currentTaxDL = 0
-
-        returnHostPosition()
-        Sleep(600)
+        local halfTaxDropped = donateHalfTax(currentTaxDL)
+        if halfTaxDropped then
+            currentTaxDL = 0
+            returnHostPosition()
+            Sleep(600)
+        else
+            textoverlay("`4Half tax was not fully dropped - staying here")
+            ngomong("`4[WARNING] Half tax drop failed; return center cancelled.")
+        end
 
         logGame()
         autoConvertPaused = false
