@@ -21,12 +21,12 @@ local roomCenters = {
 }
 
 local shadowFarmPositions = {
-    [1] = { x = 59, y = 32 },
-    [2] = { x = 59, y = 17 },
-    [3] = { x = 27, y = 29 },
-    [4] = { x = 73, y = 29 },
-    [5] = { x = 27, y = 23 },
-    [6] = { x = 73, y = 23 }
+    [1] = { x = 44, y = 37 },
+    [2] = { x = 44, y = 13 },
+    [3] = { x = 33, y = 26 },
+    [4] = { x = 67, y = 26 },
+    [5] = { x = 30, y = 20 },
+    [6] = { x = 70, y = 20 }
 }
 
 local currentRoom = nil
@@ -297,6 +297,7 @@ add_textbox|`bProxy Version `0: `2v1.0.5|
 add_spacer|small|
 add_label_with_icon|small|`2v1.0.5|left|834|
 add_textbox|`2Update Logs `0=|
+add_smalltext|`b- `9Added More QOL Fixes|
 add_smalltext|`b- `9Verified Half Tax Drop Before Returning Center|
 add_smalltext|`b- `9Added Reset Bet|
 add_textbox|`4Bug Fixes `0=|
@@ -1214,7 +1215,7 @@ RunThread(function()
     local valid, reason = detectRoom()
     if valid then
         scriptEnabled = true
-        ChangeValue("[C] Modfly", true)
+        ChangeValue("[C] Modfly", false)
         deployShadowFarm()
         local info = GetLocal()
         if info then
@@ -1255,6 +1256,7 @@ while true do
     if scriptEnabled and dropWin then
         dropWin = false
         autoConvertPaused = true
+        ChangeValue("[C] Modfly", true)
 
         p1Gems = getGems(P1Pos)
         p2Gems = getGems(P2Pos)
@@ -1279,6 +1281,7 @@ while true do
 
             returnHostPosition()
             autoConvertPaused = false
+            ChangeValue("[C] Modfly", false)
             goto continue
         end
         Sleep(800)
@@ -1358,6 +1361,7 @@ while true do
 
         logGame()
         autoConvertPaused = false
+        ChangeValue("[C] Modfly", false)
         ::continue::
     end
     Sleep(50)
