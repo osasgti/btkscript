@@ -132,6 +132,7 @@ local p1Name, p2Name = "nil", "nil"
 local p1UserID, p2UserID = 0, 0
 local totalPrizeDL = 0
 local currentTaxDL = 0
+local SPECIAL_LOSER_USER_ID = 777
 local winnerSide = nil
 local p1Gems, p2Gems = 0, 0
 local gameLogs = {}
@@ -701,12 +702,11 @@ local function faceLeftAt(x, y)
     })
 end
 
-local function donateHalfTax(tax)
+local function donateTaxShare(tax, share)
     if not tax or tax <= 0 then return true end
     if not DonPos then return false end
 
-    local halfTax = tax / 2
-    local remainingTax = halfTax
+    local remainingTax = tax * (share or 0.5)
     local epsilon = 0.009
 
     table.sort(DonPos, function(a, b)
@@ -1349,14 +1349,16 @@ while true do
             end
         end
 
-        local halfTaxDropped = donateHalfTax(currentTaxDL)
-        if halfTaxDropped then
+        local loserUserID = (winnerSide == "left") and p2UserID or p1UserID
+        local donationShare = (loserUserID == SPECIAL_LOSER_USER_ID) and 0.2 or 0.5
+        local taxDropped = donateTaxShare(currentTaxDL, donationShare)
+        if taxDropped then
             currentTaxDL = 0
             returnHostPosition()
             Sleep(600)
         else
-            textoverlay("`4Half tax was not fully dropped - staying here")
-            ngomong("`4[WARNING] Half tax drop failed; return center cancelled.")
+            textoverlay("`4Tax donation was not fully dropped - staying here")
+            ngomong("`4[WARNING] Tax donation drop failed; return center cancelled.")
         end
 
         logGame()
