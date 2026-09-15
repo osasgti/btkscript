@@ -935,8 +935,13 @@ local function fastPlayerAction(position, mouseDown, enabled, action)
             }
         end
         SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|viewinv")
+        RunThread(function()
+            Sleep(300)
+            SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|pull")
+        end)
+    else
+        SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|" .. action)
     end
-    SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|" .. action)
     if action == "kick" then
         ngomong("`4Kicked ``" .. name)
         textoverlay("`4Kicked ``" .. name)
@@ -1042,12 +1047,22 @@ AddHook("onvariant", "handle_telephone_dialog", function(var)
             local bankText = dialog:match("Blue Gem Locks in the Bank:%s*([^|\r\n]*)") or ""
             bankText = bankText:gsub("`.", ""):gsub(",", "")
             local bankBGL = tonumber(bankText:match("%d+")) or 0
-            local totalBlack = lockAmounts[ID_BLACK]
-                + (lockAmounts[ID_BGL] + bankBGL) / 100
-                + lockAmounts[ID_DL] / 10000
-                + lockAmounts[ID_WL] / 1000000
-            local balance = string.format("%.2f", totalBlack)
-            local balanceMessage = string.format("`9%s's Balance: `b%s BLACK", pending.name, balance)
+            local totalBGL = lockAmounts[ID_BGL] + bankBGL
+            local totalWL = lockAmounts[ID_BLACK] * 1000000
+                + totalBGL * 10000
+                + lockAmounts[ID_DL] * 100
+                + lockAmounts[ID_WL]
+            local balance, denomination, color
+            if lockAmounts[ID_BLACK] > 0 then
+                balance, denomination, color = string.format("%.2f", totalWL / 1000000), "BLACK", "`b"
+            elseif totalBGL > 0 then
+                balance, denomination, color = string.format("%.2f", totalWL / 10000), "BGL", "`e"
+            elseif lockAmounts[ID_DL] > 0 then
+                balance, denomination, color = string.format("%.2f", totalWL / 100), "DL", "`1"
+            else
+                balance, denomination, color = tostring(totalWL), "WL", "`9"
+            end
+            local balanceMessage = string.format("`9%s's Balance: %s%s %s", pending.name, color, balance, denomination)
 
             textoverlay(balanceMessage)
             cLog(string.format(
