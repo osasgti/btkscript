@@ -897,11 +897,13 @@ local function fastPlayerAction(position, mouseDown, enabled, action)
     if not enabled or not mouseDown then return false end
     if not position or not position.x or not position.y then return false end
 
-    local success, playerItems = pcall(GetPlayerItems)
-    local selectedItem = success and playerItems and playerItems.backpack
-        and tonumber(playerItems.backpack.selected) or 0
-    if selectedItem ~= WRENCH_ID then
-        SetItemSelected(WRENCH_ID)
+    if action ~= "pull" then
+        local success, playerItems = pcall(GetPlayerItems)
+        local selectedItem = success and playerItems and playerItems.backpack
+            and tonumber(playerItems.backpack.selected) or 0
+        if selectedItem ~= WRENCH_ID then
+            SetItemSelected(WRENCH_ID)
+        end
     end
 
     local localPlayer = GetLocal()
@@ -973,9 +975,8 @@ AddHook("onworldtouch", "tp_click_handler", function(pos, mouseDown)
     end
 end)
 
-AddHook("OnProcessTankUpdatePacket", "gate_auto_spam_packet_type", function(packet)
+AddHook("OnSendPacketRaw", "gate_auto_spam_raw_packet_type", function(packet)
     if not packet then return end
-
     local packetType = tonumber(packet.type)
     if packetType == 18 then
         type25SpamAllowed = false
@@ -1265,7 +1266,8 @@ if ImGui.BeginTabItem("CHEATS") then
         if ImGui.Button(spamRunning and "Spam Running" or "Start Spam", ImVec2(120, 30)) then
             if spamMessage ~= "" then
                 spamRunning = true
-                nextSpamTime = os.time() + 7
+                type25SpamAllowed = true
+                nextSpamTime = os.time()
             end
         end
     end
