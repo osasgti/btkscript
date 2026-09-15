@@ -142,12 +142,14 @@ local kick = false
 local spamEnabled = false
 local spamRunning = false
 local spamMessage = ""
+local type25SpamAllowed = false
 local nextSpamTime = os.time() + 7
 local startWebhookSent = false
 local takeRunning = false
 local currencyCommandRunning = false
 local autoConvertPaused = false
 local ignoreCollectedMessages = false
+local pendingInventoryChecks = {}
 
 local function resetBet()
     p1BetDL, p2BetDL = 0, 0
@@ -294,13 +296,12 @@ end
 local function updateBar()
     local dialog = [[
 add_label_with_icon|big|`@Osas `eBTK Proxy|left|11550|
-add_textbox|`bProxy Version `0: `2v1.0.5|
+add_textbox|`bProxy Version `0: `2v1.0.6|
 add_spacer|small|
-add_label_with_icon|small|`2v1.0.5|left|834|
+add_label_with_icon|small|`2v1.0.6|left|834|
 add_textbox|`2Update Logs `0=|
-add_smalltext|`b- `9Added More QOL Fixes|
-add_smalltext|`b- `9Verified Half Tax Drop Before Returning Center|
-add_smalltext|`b- `9Added Reset Bet|
+add_smalltext|`b- `9Added Smart Spam|
+add_smalltext|`b- `9Pull Show Inventory|
 add_textbox|`4Bug Fixes `0=|
 add_smalltext|`b- `9Fixed Black Gem Lock Drops & Auto Convert|
 add_smalltext|`b- `9Take Bets More Accurate|
@@ -925,13 +926,22 @@ local function fastPlayerAction(position, mouseDown, enabled, action)
 
     local netID = target.netid or target.netID
     local name = target.name or "Unknown"
+    if action == "pull" then
+        local userID = tonumber(target.userid) or 0
+        if userID > 0 then
+            pendingInventoryChecks[userID] = {
+                name = cleanName(name),
+                requestedAt = os.time()
+            }
+        end
+        SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|viewinv")
+    end
     SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|" .. action)
     if action == "kick" then
         ngomong("`4Kicked ``" .. name)
         textoverlay("`4Kicked ``" .. name)
     else
         ngomong("`9Gas? ``" .. name)
-        textoverlay("`9Pulled ``" .. name)
     end
     return true
 end
@@ -955,6 +965,17 @@ AddHook("onworldtouch", "tp_click_handler", function(pos, mouseDown)
             FindPath(tileX, tileY, 1000)
         end)
         return true
+    end
+end)
+
+AddHook("OnProcessTankUpdatePacket", "gate_auto_spam_packet_type", function(packet)
+    if not packet then return end
+
+    local packetType = tonumber(packet.type)
+    if packetType == 18 then
+        type25SpamAllowed = false
+    elseif packetType == 25 then
+        type25SpamAllowed = true
     end
 end)
 
@@ -998,6 +1019,50 @@ AddHook("onvariant", "handle_telephone_dialog", function(var)
     end
 
     local dialog = tostring(var[1] or "")
+    if var[0] == "OnDialogRequest" and dialog:find("'s Inventory", 1, true) then
+        local userID = tonumber(dialog:match("embed_data|userID|(%d+)")) or 0
+        local pending = pendingInventoryChecks[userID]
+        if pending then
+            pendingInventoryChecks[userID] = nil
+
+            local lockAmounts = {
+                [ID_WL] = 0,
+                [ID_DL] = 0,
+                [ID_BGL] = 0,
+                [ID_BLACK] = 0
+            }
+            for itemID, amount in dialog:gmatch("staticframe|(%d+)|([%d,]+)|") do
+                itemID = tonumber(itemID)
+                if lockAmounts[itemID] ~= nil then
+                    lockAmounts[itemID] = lockAmounts[itemID]
+                        + (tonumber((amount:gsub(",", ""))) or 0)
+                end
+            end
+
+            local bankText = dialog:match("Blue Gem Locks in the Bank:%s*([^|\r\n]*)") or ""
+            bankText = bankText:gsub("`.", ""):gsub(",", "")
+            local bankBGL = tonumber(bankText:match("%d+")) or 0
+            local totalBlack = lockAmounts[ID_BLACK]
+                + (lockAmounts[ID_BGL] + bankBGL) / 100
+                + lockAmounts[ID_DL] / 10000
+                + lockAmounts[ID_WL] / 1000000
+            local balance = string.format("%.2f", totalBlack)
+            local balanceMessage = string.format("`9%s's Balance: `b%s BLACK", pending.name, balance)
+
+            textoverlay(balanceMessage)
+            cLog(string.format(
+                "%s | BLACK: %d | BGL: %d inventory + %d bank | DL: %d | WL: %d",
+                balanceMessage,
+                lockAmounts[ID_BLACK],
+                lockAmounts[ID_BGL],
+                bankBGL,
+                lockAmounts[ID_DL],
+                lockAmounts[ID_WL]
+            ))
+            return true
+        end
+    end
+
     if var[0] == "OnDialogRequest" and dialog:lower():find("bgl bank", 1, true) then
         local found = dialog:match("You have [`%w%s%p]-`%$(%d+)``")
             or dialog:match("%$([%d,]+)%s*BGL")
@@ -1236,7 +1301,8 @@ RunThread(function()
 end)
 
 while true do
-    if scriptEnabled and spamEnabled and spamRunning and spamMessage ~= "" and os.time() >= nextSpamTime then
+    if scriptEnabled and spamEnabled and spamRunning and type25SpamAllowed
+        and spamMessage ~= "" and os.time() >= nextSpamTime then
         ngomong(spamMessage)
         nextSpamTime = os.time() + 7
     end
