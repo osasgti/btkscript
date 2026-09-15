@@ -1066,7 +1066,7 @@ AddHook("onvariant", "handle_telephone_dialog", function(var)
 
             textoverlay(balanceMessage)
             cLog(string.format(
-                "%s | BLACK: %d | BGL: %d inventory + %d bank | DL: %d | WL: %d",
+                "%s `0| `bBLACK: %d `0| `eBGL: %d inventory + %d bank `0| `1DL: %d `0| `9WL: %d",
                 balanceMessage,
                 lockAmounts[ID_BLACK],
                 lockAmounts[ID_BGL],
