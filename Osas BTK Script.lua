@@ -897,10 +897,12 @@ local function fastPlayerAction(position, mouseDown, enabled, action)
     if not enabled or not mouseDown then return false end
     if not position or not position.x or not position.y then return false end
 
-    if action ~= "pull" then
-        local success, playerItems = pcall(GetPlayerItems)
-        local selectedItem = success and playerItems and playerItems.backpack
-            and tonumber(playerItems.backpack.selected) or 0
+    local success, playerItems = pcall(GetPlayerItems)
+    local selectedItem = success and playerItems and playerItems.backpack
+        and tonumber(playerItems.backpack.selected) or 0
+    if action == "pull" then
+        if selectedItem ~= WRENCH_ID then return false end
+    else
         if selectedItem ~= WRENCH_ID then
             SetItemSelected(WRENCH_ID)
         end
@@ -938,7 +940,7 @@ local function fastPlayerAction(position, mouseDown, enabled, action)
         end
         SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|viewinv")
         RunThread(function()
-            Sleep(300)
+            Sleep(200)
             SendPacket(2, "action|dialog_return\ndialog_name|popup\nnetID|" .. netID .. "|\nbuttonClicked|pull")
         end)
     else
