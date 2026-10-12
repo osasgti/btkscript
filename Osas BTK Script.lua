@@ -89,8 +89,9 @@ end
 
 local function detectRoom()
     local world = GetWorld()
-    if not world or tostring(world.name or ""):upper() ~= "BTK" then
-        return false, "Script was run outside world BTK"
+    local worldName = world and tostring(world.name or ""):upper() or ""
+    if worldName ~= "BTK" and worldName ~= "WIN" then
+        return false, "Script was run outside worlds BTK or WIN"
     end
 
     local player = GetLocal()
