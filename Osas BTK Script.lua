@@ -12,21 +12,17 @@ local INVALID_START_WEBHOOK = "https://discord.com/api/webhooks/1541792771214671
 local ROOM_WEBHOOK = "https://discord.com/api/webhooks/1541790695025811496/IQ7P7kE6QHXOIEyVxa86GEgq4IFXLfh60k3jUF9n0I5xpVSzcUHgooGusrRbQ-sKOpyK"
 
 local roomCenters = {
-    [1] = { x = 50, y = 34 },
-    [2] = { x = 50, y = 16 },
-    [3] = { x = 36, y = 29 },
-    [4] = { x = 64, y = 29 },
-    [5] = { x = 36, y = 23 },
-    [6] = { x = 64, y = 23 }
+    [1] = { x = 41, y = 51 },
+    [2] = { x = 57, y = 51 },
+    [3] = { x = 33, y = 46 },
+    [4] = { x = 65, y = 46 }
 }
 
 local shadowFarmPositions = {
-    [1] = { x = 44, y = 37 },
-    [2] = { x = 44, y = 13 },
-    [3] = { x = 33, y = 26 },
-    [4] = { x = 67, y = 26 },
-    [5] = { x = 30, y = 20 },
-    [6] = { x = 70, y = 20 }
+    [1] = { x = 35, y = 48 },
+    [2] = { x = 51, y = 54 },
+    [3] = { x = 30, y = 43 },
+    [4] = { x = 68, y = 43 }
 }
 
 local currentRoom = nil
@@ -48,17 +44,6 @@ local function positionsForRoom(roomNumber)
 
     if roomNumber == 1 then
         return {
-            d1 = { x = cx - 3, y = cy - 1 }, d2 = { x = cx + 3, y = cy - 1 },
-            w1 = { x = cx - 4, y = cy - 1 }, w2 = { x = cx + 4, y = cy - 1 },
-            p1 = {{ x = cx - 5, y = cy + 1 }, { x = cx - 4, y = cy + 1 }, { x = cx - 3, y = cy + 1 }},
-            p2 = {{ x = cx + 5, y = cy + 1 }, { x = cx + 4, y = cy + 1 }, { x = cx + 3, y = cy + 1 }},
-            don = {{ x = cx - 2, y = cy + 3 }, { x = cx - 1, y = cy + 3 }, { x = cx, y = cy + 3 }, { x = cx + 1, y = cy + 3 }, { x = cx + 2, y = cy + 3 }},
-            r1 = rect(cx - 6, cx - 3, cy - 2, cy - 1),
-            r2 = rect(cx + 3, cx + 6, cy - 2, cy - 1),
-            center = { x = cx, y = cy }
-        }
-    elseif roomNumber == 2 then
-        return {
             d1 = { x = cx - 3, y = cy + 1 }, d2 = { x = cx + 3, y = cy + 1 },
             w1 = { x = cx - 4, y = cy + 1 }, w2 = { x = cx + 4, y = cy + 1 },
             p1 = {{ x = cx - 5, y = cy - 1 }, { x = cx - 4, y = cy - 1 }, { x = cx - 3, y = cy - 1 }},
@@ -66,6 +51,17 @@ local function positionsForRoom(roomNumber)
             don = {{ x = cx - 2, y = cy - 3 }, { x = cx - 1, y = cy - 3 }, { x = cx, y = cy - 3 }, { x = cx + 1, y = cy - 3 }, { x = cx + 2, y = cy - 3 }},
             r1 = rect(cx - 6, cx - 3, cy + 1, cy + 2),
             r2 = rect(cx + 3, cx + 6, cy + 1, cy + 2),
+            center = { x = cx, y = cy }
+        }
+    elseif roomNumber == 2 then
+        return {
+            d1 = { x = cx - 3, y = cy - 1 }, d2 = { x = cx + 3, y = cy - 1 },
+            w1 = { x = cx - 4, y = cy - 1 }, w2 = { x = cx + 4, y = cy - 1 },
+            p1 = {{ x = cx - 5, y = cy + 1 }, { x = cx - 4, y = cy + 1 }, { x = cx - 3, y = cy + 1 }},
+            p2 = {{ x = cx + 5, y = cy + 1 }, { x = cx + 4, y = cy + 1 }, { x = cx + 3, y = cy + 1 }},
+            don = {{ x = cx - 2, y = cy + 3 }, { x = cx - 1, y = cy + 3 }, { x = cx, y = cy + 3 }, { x = cx + 1, y = cy + 3 }, { x = cx + 2, y = cy + 3 }},
+            r1 = rect(cx - 6, cx - 3, cy - 2, cy - 1),
+            r2 = rect(cx + 3, cx + 6, cy - 2, cy - 1),
             center = { x = cx, y = cy }
         }
     end
@@ -392,11 +388,11 @@ local function takeChandeliers(requiredAmount)
         return true
     end
 
-    FindPath(50, 24, 1000)
+    FindPath(49, 46, 1000)
     Sleep(500)
-    SendPacketRaw(false, { type = 3, value = 32, x = 50 * 32, y = 25 * 32, px = 50, py = 25, netid = 0, state = 0 })
+    SendPacketRaw(false, { type = 3, value = 32, x = 49 * 32, y = 47 * 32, px = 49, py = 47, netid = 0, state = 0 })
     Sleep(500)
-    SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|50|\ny|25|\nbuttonClicked|getRemote")
+    SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|49|\ny|47|\nbuttonClicked|getRemote")
     for _ = 1, 10 do
         if inv(ID_CHAND) >= requiredAmount then break end
         Sleep(500)
