@@ -42,18 +42,7 @@ local function positionsForRoom(roomNumber)
     local center = roomCenters[roomNumber]
     local cx, cy = center.x, center.y
 
-    if roomNumber == 1 then
-        return {
-            d1 = { x = cx - 3, y = cy + 1 }, d2 = { x = cx + 3, y = cy + 1 },
-            w1 = { x = cx - 4, y = cy + 1 }, w2 = { x = cx + 4, y = cy + 1 },
-            p1 = {{ x = cx - 5, y = cy - 1 }, { x = cx - 4, y = cy - 1 }, { x = cx - 3, y = cy - 1 }},
-            p2 = {{ x = cx + 5, y = cy - 1 }, { x = cx + 4, y = cy - 1 }, { x = cx + 3, y = cy - 1 }},
-            don = {{ x = cx - 2, y = cy - 3 }, { x = cx - 1, y = cy - 3 }, { x = cx, y = cy - 3 }, { x = cx + 1, y = cy - 3 }, { x = cx + 2, y = cy - 3 }},
-            r1 = rect(cx - 6, cx - 3, cy + 1, cy + 2),
-            r2 = rect(cx + 3, cx + 6, cy + 1, cy + 2),
-            center = { x = cx, y = cy }
-        }
-    elseif roomNumber == 2 then
+    if roomNumber == 1 or roomNumber == 2 then
         return {
             d1 = { x = cx - 3, y = cy - 1 }, d2 = { x = cx + 3, y = cy - 1 },
             w1 = { x = cx - 4, y = cy - 1 }, w2 = { x = cx + 4, y = cy - 1 },
@@ -111,14 +100,18 @@ local function detectRoom()
     end
 
     if not matchedRoom then
-        return false, "Player was not standing at a room center"
+        return false, string.format("Player was at (%d, %d), not a room center", playerX, playerY)
     end
 
     local positions = positionsForRoom(matchedRoom)
     local d1 = GetTile(positions.d1.x, positions.d1.y)
     local d2 = GetTile(positions.d2.x, positions.d2.y)
     if not d1 or not d2 or d1.fg ~= ID_BET_BLOCK or d2.fg ~= ID_BET_BLOCK then
-        return false, "Room center was found but its BTK layout was invalid"
+        return false, string.format(
+            "BTK layout invalid: bet tiles (%d, %d) and (%d, %d) hold fg %s and %s, expected %d",
+            positions.d1.x, positions.d1.y, positions.d2.x, positions.d2.y,
+            d1 and tostring(d1.fg) or "nil", d2 and tostring(d2.fg) or "nil", ID_BET_BLOCK
+        )
     end
 
     setRoom(matchedRoom)
@@ -1311,7 +1304,7 @@ RunThread(function()
             sendStartWebhook(0)
         end
     else
-        textoverlay("`4You must be in the center of the room")
+        textoverlay("`4" .. tostring(reason))
         sendInvalidStartWebhook(reason)
     end
 end)
