@@ -384,9 +384,9 @@ local function takeChandeliers(requiredAmount)
 
     FindPath(49, 46, 1000)
     Sleep(500)
-    SendPacketRaw(false, { type = 3, value = 32, x = 49 * 32, y = 47 * 32, px = 49, py = 47, netid = 0, state = 0 })
+    SendPacketRaw(false, { type = 3, value = 32, x = 49 * 32, y = 48 * 32, px = 49, py = 47, netid = 0, state = 0 })
     Sleep(500)
-    SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|49|\ny|47|\nbuttonClicked|getRemote")
+    SendPacket(2, "action|dialog_return\ndialog_name|magplant_edit\nx|49|\ny|48|\nbuttonClicked|getRemote")
     for _ = 1, 10 do
         if inv(ID_CHAND) >= requiredAmount then break end
         Sleep(500)
